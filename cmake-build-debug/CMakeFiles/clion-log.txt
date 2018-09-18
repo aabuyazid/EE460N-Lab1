@@ -1,0 +1,11 @@
+"C:\Users\Arkan Abuyazid\.CLion2018.2\system\cygwin_cmake\bin\cmake.exe" -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" "/cygdrive/c/Users/Arkan Abuyazid/Documents/UT-Fa18/EE460N/Lab1"
+-- The C compiler identification is GNU 6.4.0
+-- Check for working C compiler: /usr/bin/cc
+-- Check for working C compiler: /usr/bin/cc -- works
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /cygdrive/c/Users/Arkan Abuyazid/Documents/UT-Fa18/EE460N/Lab1/cmake-build-debug
