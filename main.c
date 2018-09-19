@@ -1,28 +1,25 @@
 /*
-	Name 1:
-	Name 2 :
-	UTEID 1:
-	UTEID 2:
-*/
-
-#include <stdio.h> /* standard input/output library */
+       Name 1:
+       Name 2:
+       UTEID 1:
+       UTEID 2:
+ */
+#include <stdio.h>
 #include <stdlib.h> /* Standard C Library */
 #include <string.h> /* String operations library */
 #include <ctype.h> /* Library for useful character operations */
 #include <limits.h> /* Library for definitions of common variable type characteristics */
 
-#define MAX_LINE_LENGTH 255
-#define MAX_LABEL_LEN 20
-#define MAX_SYMBOLS 255
 FILE* infile = NULL;
 FILE* outfile = NULL;
 
+#define MAX_LINE_LENGTH 255
 enum
 {
     DONE, OK, EMPTY_LINE
 };
-
-/* Creates Symbol table entry*/
+#define MAX_LABEL_LEN 20
+#define MAX_SYMBOLS 255
 typedef struct {
     int address;
     char label[MAX_LABEL_LEN + 1];	/* Question for the reader: Why do we need to add 1? */
@@ -31,12 +28,12 @@ TableEntry symbolTable[MAX_SYMBOLS];
 
 /* generates symbol table */
 void func(void);
-/* Adds an element to the symbol table and checks if it is already there*/
+
 int makeSymbolTable(char* pLabel, int memLocation, int currentStore);
 
-/* Checks if label is anything it should not be*/
-int validLabel(char* pLabel);
 
+//int
+validLabel(char* pLabel);
 /* generates 1's and 0's */
 void func2(void);
 
@@ -44,14 +41,30 @@ int readAndParse(FILE* pInfile, char* pLine, char** pLabel,  char** pOpcode, cha
 
 int isOpcode(char* input);
 
-/* looks at if input is .end*/
 int isEnd(char* input);
 
-/* Looks at if input is .orig*/
 int isFront(char* input);
 
 /* checks the value depending on operation, .Orig is 29 and .fill is 30*/
 int isOrig(char* input, int operation);
+
+void decToHex(int value, char* pArg1);
+//Gets the top four bits
+char opToHex(int input);
+//executes code based on op and if op is there
+void checkTwelveBits( char* pArg1, char* pArg2,char* pArg3, char* pArg4, char* psecondHexVal, char* pthirdHexVal, char* pfourthHexVal, int input);
+
+//Checks if the values are allowed for add, and, xor, not
+void checkForPlacement(char* pArg1, char* pArg2, char* pArg3);
+
+//Does add, and, xor, not
+int constructAdd(char* pArg1, char* pArg2, char* pArg3);
+
+int checkLDBPlacement(char* pArg1, char* pArg2, char* pArg3);
+
+int trapPlacement(char* pArg1);
+
+int jsrJmpPlacement(char* pArg1);
 
 int main(int argc, char* argv[]) {
     printf("Hello, World!\n");
@@ -102,9 +115,8 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-int
-toNum( char * pStr )
-{
+
+int toNum( char * pStr ) {
     char * t_ptr;
     char * orig_pStr;
     int t_length,k;
@@ -169,7 +181,9 @@ toNum( char * pStr )
     }
 }
 
-int readAndParse( FILE * pInfile, char * pLine, char ** pLabel, char** pOpcode, char ** pArg1, char ** pArg2, char ** pArg3, char ** pArg4){
+
+int readAndParse( FILE * pInfile, char * pLine, char ** pLabel, char ** pOpcode, char ** pArg1, char ** pArg2, char ** pArg3, char ** pArg4)
+{
     char * lRet, * lPtr;
     int i;
     if( !fgets( pLine, MAX_LINE_LENGTH, pInfile ) )
@@ -234,8 +248,10 @@ void func(void) {
         exit(4);
     }
     int front = isFront(lOpcode);
+    //check proper way of doing .orig to exit 3 when it is not word aligned or if too large
     if(front == -1)
         exit (4);
+    //Program Counter
     int invalidOrig = isOrig(lArg1, 29);
    // if(invalidOrig == -1)
      //   exit (3);
@@ -250,7 +266,9 @@ void func(void) {
         if( lRet != DONE && lRet != EMPTY_LINE )
         {
             if(*lLabel != '\0' ){
-                int labelVal = validLabel(lLabel);
+                //int label
+                validLabel(lLabel);
+                //Symbol table index
                 label = makeSymbolTable(lLabel, invalidOrig, label);
             }
             //Check for case when .orig is xFFFF or close to that
@@ -259,21 +277,33 @@ void func(void) {
     } while( lRet != DONE );
 }
 
-
+/* When is pArg4 not zero?*/
 void func2(void) {
     char lLine[MAX_LINE_LENGTH + 1], *lLabel, *lOpcode, *lArg1,
             *lArg2, *lArg3, *lArg4;
 
     int lRet;
-
+    lRet = readAndParse(infile, lLine, &lLabel, &lOpcode, &lArg1, &lArg2, &lArg3, &lArg4);
+    int invalidOrig = isOrig(lArg1, 29); //Get value of .orig, should be valid  because of func
+    decToHex(invalidOrig, lArg1);
+    char secondHexVal = '\0';
+    char thirdHexVal = '\0';
+    char fourthHexVal = '\0';
     do
     {
         lRet = readAndParse( infile, lLine, &lLabel,
                              &lOpcode, &lArg1, &lArg2, &lArg3, &lArg4 );
         if( lRet != DONE && lRet != EMPTY_LINE )
         {
-
+            //Line below just shows what Arg4 is if not null
+            if(*lArg4 != '\0') printf("%s", lArg4);
+            char hexVal[7] = {'0', 'x', '\0', '\0', '\0', '\0', '\0'}; //\n
+            int checked = isOpcode(lOpcode);
+            if(checked == -1) exit(2);
+            hexVal[3] = opToHex(checked);
+            checkTwelveBits(lArg1, lArg2, lArg3, lArg4, &secondHexVal, &thirdHexVal, &fourthHexVal, checked);
         }
+
     } while( lRet != DONE );
 }
 /* returns count if opcode match and returns -1 if no opcode match
@@ -288,37 +318,6 @@ int isOpcode(char* input){
                        "stb","stw","trap","xor","halt","nop","not"
     };
     int result = 0;
-/*
- *	char* and = "and";
-	char* add = "add";
-	char* br = "br";
-	char* halt = "halt";
-	char* jmp = "jmp";
-	char* jsr = "jsr";
-	char* jsrr = "jsrr";
-	char* ldb = "ldb";
-	char* ldw = "ldw";
-	char* lea = "lea";
-	char* nop = "nop";
-	char* not  "not";
-	char* not = "ret";
-	char* lshf = "lshf";
-	char* rshfl = "rshfl";
-	char* rshfa = "rshfa";
-	char* rti = "rti";
-	char* stb = "stb";
-	char* stw = "stw";
-	char* trap = "trap";
-	char* xor = "xor";
-	char* brnp = "brnp";
-	char* brn = "brn";
-	char* brnz = "brnz";
-	char* brnzp = "brnzp";
-	char* brz = "brz";
-	char* brzp = "brzp";
-	char* brp = "brp";
-	char* temp = input;
- * */
     int count = 0;
     while(count < 28){
         result = strcmp(input, ops[count]);
@@ -417,7 +416,7 @@ int makeSymbolTable(char* pLabel, int memLocation, int currentStore){
 }
 
 /* returns 1 if a valid label*/
-int validLabel(char* pLabel){
+validLabel(char* pLabel){
     char notLabels [4][5] = {"in", "out", "getc", "puts"}; //can it not be halt or so either
     char ops[28][6] ={ "add", "and","br","brn","brz","brp","brnz",
                        "brnp","brzp","brnzp","jmp","jsr","jsrr","ldb",
@@ -437,7 +436,7 @@ int validLabel(char* pLabel){
         c = pLabel[i];
         if(isalnum(c) == 0) exit(4);
     }
-    return 1;
+    //return 1;
 }
 
 /* returns 1 if the label was in the symbol table
@@ -453,3 +452,248 @@ int doesLabelExist(char* pLabel){
     }
     exit(1);
 }
+
+void decToHex(int value, char* pArg1){
+            fprintf(outfile, "0x%.4X\n",value);
+}
+
+char opToHex(int input){
+    char opBinary [14] = {'1', '5', '0', 'C', '4', '2', '6', 'E', '8', 'D', '3', '7','F', '9'};
+    if(input == 1) return opBinary[0];
+    if(input == 2) return  opBinary[1];
+    if((input >2) && (input <11)) return opBinary[2];
+    if(input == 11) return opBinary[3];
+    if((input == 12) ||(input == 13)) return opBinary[4];
+    if(input == 14) return opBinary[5];
+    if(input == 15) return opBinary[6];
+    if(input == 16) return opBinary[7];
+    if((input == 17) || (input == 18)) return opBinary[8];
+    if((input == 19) || (input == 20) || (input == 21)) return opBinary[9];
+    if(input == 22) return opBinary[10];
+    if(input == 23) return opBinary[11];
+    if(input == 24) return opBinary[12];
+    if((input == 25) || (input == 28)) return opBinary[13];
+    printf("Something went wrong %d\n", input);
+    return '\0';
+}
+
+void checkTwelveBits( char* pArg1, char* pArg2,char* pArg3, char* pArg4, char* psecondHexVal, char* pthirdHexVal, char* pfourthHexVal, int input){
+    int bottomFour = 0;
+    int middleFour = 0;
+    int topFour = 0;
+    if((input == 1) || (input == 2) || (input == 25)|| (input == 28)){
+        if((*pArg1 == '\0') || (*pArg2 == '\0') || (*pArg3 == '\0')) exit (4); //Wrong number of operands
+        checkForPlacement(pArg1, pArg2, pArg3);
+         int twelveBit = constructAdd(pArg1,pArg2,pArg3);
+         //0x000F
+         bottomFour = twelveBit & 15;
+         middleFour = (twelveBit >> 4) & 15;
+         topFour = (twelveBit >> 8) & 15;
+         //Value of int should fit
+         //Unless the values weren't checked for oversized
+         *psecondHexVal = topFour + '0';
+         *pthirdHexVal = middleFour + '0';
+         *pfourthHexVal = bottomFour + '0';
+         return;
+    }
+    if((input == 14) || (input == 15) || (input == 22)|| (input == 23)){
+        if((*pArg1 == '\0') || (*pArg2 == '\0') || (*pArg3 == '\0')) exit (4); //Wrong number of operands
+        int bits = checkLDBPlacement(pArg1, pArg2, pArg3);
+        //0x000F
+        bottomFour = bits & 15;
+        middleFour = (bits >> 4) & 15;
+        topFour = (bits >> 8) & 15;
+        //Value of int should fit
+        //Unless the values weren't checked for oversized
+        *psecondHexVal = topFour + '0';
+        *pthirdHexVal = middleFour + '0';
+        *pfourthHexVal = bottomFour + '0';
+        return;
+    }
+    if(((input > 2 ) && (input < 11)) || (input == 16)){
+        //checks branch operands
+        if(input != 16){
+            if((*pArg1 == '\0') || (*pArg2 != '\0')) exit (4); //Wrong number of operands, either 0 or more than 1
+        }
+        //checks lea below for two operands
+        else{
+            if((*pArg1 == '\0') || (*pArg2 == '\0') || (*pArg3 != '\0')) exit (4); //not 2 operands exactly
+        }
+    }
+    //Trap, jmp, jsr, jsrr, ret, ret
+    if((input == 11)|| (input == 12) || (input == 13) || (input == 17) || (input == 18) || (input == 24)){
+        //
+        if((input > 10) && (input < 14)){
+            if((*pArg1 == '\0') || (*pArg2 != '\0')) exit(4); //Wrong number of operands
+        }
+        //trap
+        else if(input == 24){
+            if((*pArg1 == '\0') || (*pArg2 != '\0')) exit(4); //Wrong number of operands
+            int bitVals = trapPlacement(pArg1);
+            psecondHexVal = '0';
+            pthirdHexVal =  ((bitVals >> 4) & 15) + '0';
+            pfourthHexVal = ((bitVals & 15) + '0');
+        }
+        else{
+            if(*pArg1 != "\0") exit(4); //Wrong number of operands
+        }
+    }// this one may be wrong
+    if((input > 18) && (input < 22)){
+        if((*pArg1 == '\0') || (*pArg2 == '\0') || (*pArg3 == '\0')) exit (4); //Wrong number of operands
+    }
+    //How to check for halt and nop?
+}
+
+void checkForPlacement(char* pArg1, char* pArg2, char* pArg3){
+    char registers[8][3] = {"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7"};
+    int trueCheck = 0;
+    //Checks DR
+    for(int k = 0; k < 8; k++){
+        int result = strcmp(pArg1, registers[k]);
+        if(result == 0) trueCheck = 1;
+    }
+    //Checks SR1
+    if(trueCheck == 0) exit(4);//It was not 0-7
+    trueCheck = 0;
+    for(int k = 0; k < 8; k++){
+        int result = strcmp(pArg2, registers[k]);
+        if(result == 0) trueCheck = 1;
+    }
+    //Checks SR2
+    if(trueCheck == 0) exit(4);//It was not 0-7
+    trueCheck = 0;
+    for(int k = 0; k < 8; k++){
+        int result = strcmp(pArg3, registers[k]);
+        if(result == 0) trueCheck = 1;
+    }
+    //Checks if sr2 was actually a x or # value
+    if(trueCheck == 0){
+        if(*pArg3 == 'x' || *pArg3 == '#') trueCheck = 1;
+        if(trueCheck == 0) exit(4);
+    }//It was not 0-7
+}
+
+int constructAdd(char* pArg1, char* pArg2, char* pArg3){
+    char registers[8][3] = {"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7"};
+    int registerVal = 0;
+    int destination = 0;
+    int sourceOne = 0;
+    int sourceTwo = 0;
+    for(int k = 0; k < 8; k++){
+        int result = strcmp(pArg1, registers[k]);
+        if(result == 0) registerVal = k;
+    }
+    //Bit-Wise  shift it 9 to 11-9
+    destination = registerVal << 9;
+    for(int k = 0; k < 8; k++){
+        int result = strcmp(pArg2, registers[k]);
+        if(result == 0) registerVal = k;
+    }
+    //Bit-Wise shift by 6
+    sourceOne = registerVal << 6;
+    int immediateOrSource = 0;
+    //Source indicated by one
+    for(int k = 0; k < 8; k++){
+        int result = strcmp(pArg3, registers[k]);
+        if(result == 0) {
+            registerVal = k;
+            immediateOrSource = 1;
+        }
+    }
+    if(immediateOrSource == 1){
+        sourceTwo = registerVal;
+    }
+    else{
+        sourceTwo = 32;
+        int val = toNum(pArg3);
+        //x000F
+        val = (val & 31);
+        sourceTwo = (sourceTwo | val);
+    }
+    //x0FFF
+    int returnVal = 4095;
+    returnVal = (destination | sourceOne | sourceTwo) & 4095;
+    return returnVal;
+}
+
+int checkLDBPlacement(char* pArg1, char* pArg2, char* pArg3){
+
+    char registers[8][3] = {"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7"};
+    int trueCheck = 0;
+    int registerVal = 0;
+    int destination = 0;
+    int sourceOne = 0;
+    int sourceTwo = 0;
+    //Checks DR
+    for(int k = 0; k < 8; k++){
+        int result = strcmp(pArg1, registers[k]);
+        if(result == 0) {
+            registerVal = k;
+            trueCheck = 1;
+        }
+    }
+    //Checks SR1
+    if(trueCheck == 0) exit(4);//It was not 0-7
+    destination = registerVal << 9;
+    trueCheck = 0;
+    for(int k = 0; k < 8; k++){
+        int result = strcmp(pArg2, registers[k]);
+        if(result == 0) {
+            registerVal = k;
+            trueCheck = 1;
+        }
+    }
+    //Checks SR2
+    if(trueCheck == 0) exit(4);//It was not 0-7
+    sourceOne = registerVal <<6;
+    trueCheck = 0;
+    //Checks if sr2 was actually a x or # value
+    if(trueCheck == 0){
+        if(*pArg3 == 'x' || *pArg3 == '#'){
+            trueCheck = 1;
+        }
+        if(trueCheck == 0) exit(4);
+        sourceTwo = 0;
+        //This may be wrong way of clipping value
+        int val = toNum(pArg3);
+        //x000F
+        val = (val & 63);
+        sourceTwo = (sourceTwo | val);
+    }//It was not 0-7
+    int returnVal = 4095;
+    returnVal = (destination | sourceOne | sourceTwo) & 4095;
+    return returnVal;
+}
+
+int trapPlacement(char* pArg1){
+     int length = 8191;
+     int val = toNum(pArg1);
+    if(val < 0){
+        printf("Trap Value %d", val);
+        exit(3);
+    }
+     if(val > length) exit(3);
+    return val;
+}
+
+//Checks for commas
+int jsrJmpPlacement(char* pArg1){
+    char registers[8][3] = {"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7"};
+    int trueCheck = 0;
+    int registerVal = 0;
+    int destination = 0;
+    for(int k = 0; k < 8; k++){
+        int result = strcmp(pArg1, registers[k]);
+        if(result == 0) {
+            registerVal = k;
+            trueCheck = 1;
+        }
+    }
+    //Checks SR1
+    if(trueCheck == 0) exit(4);//It was not 0-7
+    destination = registerVal << 6;
+    trueCheck = 0;
+    destination = destination & 511;
+    return destination;
+}
+
